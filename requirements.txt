@@ -1,2 +1,5 @@
-markdown
-PyGObject
+Markdown==3.8.2
+markdown2==2.5.3
+pycairo==1.28.0
+Pygments==2.19.2
+PyGObject==3.52.3
