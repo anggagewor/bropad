@@ -1,0 +1,48 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+*.log
+
+# === VS Code / IDE ===
+.vscode/
+.idea/
+
+# === GTK UI Cache ===
+*.mo
+*.pot
+
+# === Notes lokal ===
+notes/
+*.md~
+
+# === Environment / Virtualenv ===
+.env
+.venv/
+venv/
+ENV/
+env.bak/
+env/
+
+# === System Files ===
+.DS_Store
+Thumbs.db
+
+# === Backup ===
+*~
+*.bak
+*.swp
+*.swo
+
+# === PyInstaller / Frozen App (optional) ===
+*.spec
+
+# === Settings pribadi ===
+settings.json
+configs/
