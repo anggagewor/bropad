@@ -3,7 +3,7 @@ import gi
 import markdown2
 
 from ui.note_handler import NoteHandler
-
+from core.config_manager import ConfigManager
 gi.require_version("Gtk", "3.0")
 gi.require_version("WebKit2", "4.1")
 gi.require_version("GtkSource", "4")
@@ -16,9 +16,12 @@ class BropadWindow(Gtk.ApplicationWindow):
     def __init__(self, app):
         super().__init__(application=app, title="Bropad", default_width=1000, default_height=600)
         self.set_border_width(0)
-
-        os.makedirs(NOTES_DIR, exist_ok=True)
-        self.handler = NoteHandler(NOTES_DIR)
+        self.config = ConfigManager()
+        self.notes_dir = self.config.get("notes_path")
+        os.makedirs(self.notes_dir, exist_ok=True)
+        self.handler = NoteHandler(self.notes_dir)
+        # os.makedirs(NOTES_DIR, exist_ok=True)
+        # self.handler = NoteHandler(NOTES_DIR)
 
         self.notes_list = Gtk.ListBox()
         self.notes_list.connect("row-selected", self.on_note_selected)
@@ -72,6 +75,9 @@ class BropadWindow(Gtk.ApplicationWindow):
         quit_item.connect("activate", self.on_quit)
         file_menu.append(quit_item)
         file_item.set_submenu(file_menu)
+        pref_item = Gtk.MenuItem(label="Preferences")
+        pref_item.connect("activate", self.on_preferences)
+        file_menu.prepend(pref_item)
 
         help_menu = Gtk.Menu()
         help_item = Gtk.MenuItem(label="Help")
@@ -125,7 +131,7 @@ class BropadWindow(Gtk.ApplicationWindow):
 
     def load_notes(self):
         self.notes_list.foreach(lambda row: self.notes_list.remove(row))
-        for filename in sorted(os.listdir(NOTES_DIR)):
+        for filename in sorted(os.listdir(self.notes_dir)):
             if filename.endswith(".md"):
                 hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
                 icon = Gtk.Image.new_from_icon_name("text-x-markdown", Gtk.IconSize.MENU)
@@ -334,7 +340,7 @@ Terima kasih juga buat komunitas Python + GTK!
             if new_filename != old_filename:
                 if not new_filename.endswith(".md"):
                     new_filename += ".md"
-                old_path = os.path.join(NOTES_DIR, old_filename)
+                old_path = os.path.join(self.notes_dir, old_filename)
                 new_path = os.path.join(NOTES_DIR, new_filename)
                 if os.path.exists(new_path):
                     self._show_message("Filename already exists!")
@@ -362,7 +368,7 @@ Terima kasih juga buat komunitas Python + GTK!
         dialog.destroy()
 
         if response == Gtk.ResponseType.YES:
-            file_path = os.path.join(NOTES_DIR, filename)
+            file_path = os.path.join(self.notes_dir, filename)
             if os.path.exists(file_path):
                 os.remove(file_path)
                 if self.current_filename == filename:
@@ -380,3 +386,59 @@ Terima kasih juga buat komunitas Python + GTK!
         )
         msg.run()
         msg.destroy()
+
+    def on_preferences(self, _):
+        dialog = Gtk.Dialog(
+            title="Preferences",
+            transient_for=self,
+            flags=0
+        )
+        dialog.add_button("Cancel", Gtk.ResponseType.CANCEL)
+        dialog.add_button("Save", Gtk.ResponseType.OK)
+
+        box = dialog.get_content_area()
+        box.set_margin_top(10)
+        box.set_margin_bottom(10)
+        box.set_margin_start(10)
+        box.set_margin_end(10)
+
+        entry = Gtk.Entry()
+        entry.set_text(self.notes_dir)
+        entry.set_hexpand(True)
+
+        hbox = Gtk.Box(spacing=6)
+        hbox.pack_start(entry, True, True, 0)
+
+        btn_browse = Gtk.Button(label="Browse...")
+        hbox.pack_start(btn_browse, False, False, 0)
+
+        box.add(Gtk.Label(label="Notes Folder:"))
+        box.add(hbox)
+
+        def on_browse_clicked(button):
+            chooser = Gtk.FileChooserDialog(
+                title="Select Note Folder",
+                transient_for=self,
+                action=Gtk.FileChooserAction.SELECT_FOLDER,
+            )
+            chooser.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Select", Gtk.ResponseType.OK)
+            if chooser.run() == Gtk.ResponseType.OK:
+                entry.set_text(chooser.get_filename())
+            chooser.destroy()
+
+        btn_browse.connect("clicked", on_browse_clicked)
+
+        dialog.show_all()
+
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            new_path = entry.get_text()
+            if os.path.isdir(new_path):
+                self.config.set("notes_path", new_path)
+                self.notes_dir = new_path
+                self.handler = NoteHandler(self.notes_dir)
+                self.load_notes()
+            else:
+                self._show_message("Folder path invalid!")
+
+        dialog.destroy()
